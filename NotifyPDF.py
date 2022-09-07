@@ -1,5 +1,6 @@
 
 from PyPDF2 import PdfReader, PdfWriter, Transformation, PdfFileWriter
+import os
 
 
 def get_pdf(pdf):
@@ -26,15 +27,15 @@ def get_number_of_pages_needed_in_final_document(number_of_original_pages):
 
 def get_odd_even_transformations(sample_height):
     odd_page_transformation = Transformation().scale(
-        sx=0.5, sy=0.5).translate(tx=10, ty=sample_height/2)
+        sx=0.5, sy=0.5).translate(tx=5, ty=sample_height/2)
     even_page_transformation = Transformation().scale(
-        sx=0.5, sy=0.5).translate(tx=10, ty=0)
+        sx=0.5, sy=0.5).translate(tx=5, ty=0)
     return (odd_page_transformation, even_page_transformation)
 
 
 def create_empty_pages_for_final_document(number_of_pages_needed, sample_width, sample_height):
     pdf = PdfFileWriter()
-    file = open("blank_pages.pdf", "wb")
+    file = open("temp_blank_pages.pdf", "wb")
     for i in range(number_of_pages_needed):
         pdf.addBlankPage(sample_width, sample_height)
     pdf.write(file)
@@ -50,18 +51,32 @@ def create_new_pdf(number_of_original_pages, number_of_pages_needed, blank_pdf,
         if i == number_of_pages_needed:
             break
 
+        print("============= i =", i, "loop started")
+
         blank_page = blank_pdf.pages[i]
+        print("A")
         odd_page = original_pdf.pages[page_number+i]
+        print("B")
+
+        ###################################################
+        # LINE THAT HAS ISSUE ON ODD NUMBER OF PDF PAGE
         even_page = original_pdf.pages[page_number+i+1]
+        ###################################################
+
+        print("C")
         odd_page.add_transformation(odd_page_transformation)
+        print("D")
         even_page.add_transformation(even_page_transformation)
+        print("E")
+
         blank_page.merge_page(odd_page)
-        print("odd page", page_number+i, "added")
+        print("odd page", page_number+i+1, "added")
         blank_page.merge_page(even_page)
-        print("even page", page_number+i+1, "added")
+        print("even page", page_number+i+1+1, "added")
+
         writer.add_page(blank_page)
         page_number += 1
-        print(i, "loop done")
+        print("--- i = ", i, "loop ended")
 
     with open(original_file_name+"_notes_version.pdf", "wb") as fp:
         writer.write(fp)
@@ -86,7 +101,9 @@ sample = get_sample(original_pdf)
 create_empty_pages_for_final_document(
     number_of_pages_needed, width, height)
 
-blank_pdf = get_pdf("blank_pages.pdf")
+blank_pdf = get_pdf("temp_blank_pages.pdf")
 
 create_new_pdf(number_of_original_pages, number_of_pages_needed, blank_pdf,
                odd_page_transformation, even_page_transformation, writer, page_number, filename_without_extension)
+
+os.remove("temp_blank_pages.pdf")

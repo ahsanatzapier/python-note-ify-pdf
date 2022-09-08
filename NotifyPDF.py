@@ -41,14 +41,21 @@ def create_empty_pages_for_final_document(number_of_pages_needed, sample_width, 
     file.close()
 
 
+def create_even_version_of_pdf():
+    pdf = PdfFileWriter()
+    file = open(filename_without_extension+"_Even_Version.pdf", "wb")
+    pdf.appendPagesFromReader(original_pdf)
+    pdf.addBlankPage(width, height)
+    pdf.write(file)
+    file.close()
+
+
 def create_new_pdf(number_of_original_pages, number_of_pages_needed, blank_pdf,
                    odd_page_transformation, even_page_transformation, writer,
                    page_number, original_file_name):
 
-    if (number_of_original_pages % 2) == 0:
-        print("Document has even pages")
-    else:
-        print("Document has odd pages")
+    if (number_of_original_pages % 2) != 0:
+        original_pdf = get_pdf(filename_without_extension+"_Even_Version.pdf")
 
     for i in range(number_of_original_pages):
 
@@ -59,13 +66,11 @@ def create_new_pdf(number_of_original_pages, number_of_pages_needed, blank_pdf,
 
         blank_page = blank_pdf.pages[i]
         print("A")
+
         odd_page = original_pdf.pages[page_number+i]
         print("B")
 
-        ###################################################
-        # LINE THAT HAS ISSUE ON ODD NUMBER OF PDF PAGE
         even_page = original_pdf.pages[page_number+i+1]
-        ###################################################
 
         print("C")
 
@@ -86,6 +91,8 @@ def create_new_pdf(number_of_original_pages, number_of_pages_needed, blank_pdf,
     with open(original_file_name+"_Notes_Version.pdf", "wb") as fp:
         writer.write(fp)
 
+    os.remove(filename_without_extension+"_Even_Version.pdf")
+
 
 # filename = "CS50-36×27-Even.pdf"
 filename = "CS106-25x19-Odd.pdf"
@@ -100,11 +107,17 @@ page_number = 0
 
 # getting the required information
 number_of_original_pages = get_number_of_original_pages(original_pdf)
+
+
 number_of_pages_needed = get_number_of_pages_needed_in_final_document(
     number_of_original_pages)
 sample = get_sample(original_pdf)
 (width, height) = get_sample_width_height(sample)
 (odd_page_transformation, even_page_transformation) = get_odd_even_transformations(height)
+
+
+if (number_of_original_pages % 2) != 0:
+    create_even_version_of_pdf()
 
 # creating empty pages that all other pages will merge into
 create_empty_pages_for_final_document(

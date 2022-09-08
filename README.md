@@ -8,4 +8,4 @@ note-ify-pdf is a Python application that takes in a PDF and samples the first p
 
 # Example
 
-![](https://cdn.zappy.app/d5580454861c4262212b35dcc6fda8b5.gif)
+![](https://cdn.zappy.app/42fb7d63646265a72043c272b7a5be17.gif)

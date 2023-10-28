@@ -1,25 +1,50 @@
+#!/usr/bin/env python3
+
 import sys
-try:
-    from PyPDF2 import PdfReader, PdfWriter, Transformation, PageObject
-except:
-    print("PyPDF2 package missing!")
-    import sys
-    import subprocess
-    answer = input("Would you like to install it now? [Accepts: y or yes]: ")
+import subprocess
+import logging
+
+logging.basicConfig(level=logging.ERROR)
+
+
+def install_pypdf2():
+    answer = input(
+        "pip uninstall PyPDF2 package missing! Would you like to install it now? [Accepts: y or yes]: ")
     if answer.lower() in ["y", "yes"]:
         try:
             subprocess.check_call(
                 [sys.executable, "-m", "pip", "install", "PyPDF2"])
-            from PyPDF2 import PdfReader, PdfWriter, Transformation, PageObject
-        except:
-            print("Something went wrong trying to install PyPDF2!")
-            exit(1)
+        except subprocess.CalledProcessError as e:
+            logging.error("Failed to install PyPDF2: %s", e)
+            sys.exit(1)
     else:
-        exit(1)
+        sys.exit(1)
+
+
+try:
+    from PyPDF2 import PdfReader, PdfWriter, Transformation, PageObject
+except ImportError:
+    install_pypdf2()
+    try:
+        from PyPDF2 import PdfReader, PdfWriter, Transformation, PageObject
+    except ImportError:
+        logging.error(
+            "Failed to import PyPDF2 even after installation attempt.")
+        sys.exit(1)
+
+
+try:
+    from PyPDF2 import PdfReader, PdfWriter, Transformation, PageObject
+except ImportError:
+    install_pypdf2()
 
 
 def get_pdf(pdf):
-    return PdfReader(pdf)
+    try:
+        return PdfReader(pdf)
+    except Exception as e:
+        logging.error("Failed to read the PDF file: %s", e)
+        sys.exit(1)
 
 
 def get_filename_without_extension(filename):
@@ -31,8 +56,8 @@ def get_sample(pdf):
 
 
 def get_sample_width_height(sample):
-    sample_width = round(sample.mediabox.upperRight[0])
-    sample_height = round(sample.mediabox.upperRight[1])
+    sample_width = round(sample.mediabox.upper_right[0])
+    sample_height = round(sample.mediabox.upper_right[1])
     return (sample_width, sample_height)
 
 
@@ -57,70 +82,66 @@ def get_odd_even_transformations(sample_height):
 
 
 def create_new_pdf(
-    number_of_pages,
-    number_of_pages_needed,
-    pdf_file,
-    document_is_even,
-    width,
-    height,
-    odd_page_transformation,
-    even_page_transformation,
-    filename_without_extension
+        number_of_pages,
+        number_of_pages_needed,
+        pdf_file,
+        document_is_even,
+        width,
+        height,
+        odd_page_transformation,
+        even_page_transformation,
+        filename_without_extension
 ):
-    pdf_writer = PdfWriter()
-    page_number = 0
+    try:
+        pdf_writer = PdfWriter()
+        page_number = 0
 
-    for i in range(number_of_pages):
+        for i in range(number_of_pages):
 
-        if i == number_of_pages_needed:
-            break
+            if i == number_of_pages_needed:
+                break
 
-        blank_page = PageObject.createBlankPage(None, width, height)
-        odd_page = pdf_file.pages[page_number+i]
-        odd_page.add_transformation(odd_page_transformation)
-        blank_page.merge_page(odd_page)
+            blank_page = PageObject.create_blank_page(
+                None, width, height)
+            odd_page = pdf_file.pages[page_number+i]
+            odd_page.add_transformation(odd_page_transformation)
+            blank_page.merge_page(odd_page)
 
-        if (i == (number_of_pages_needed - 1)) and not document_is_even:
-            even_page = PageObject.createBlankPage(None, width, height)
-        else:
-            even_page = pdf_file.pages[page_number+i+1]
-        even_page.add_transformation(even_page_transformation)
-        blank_page.merge_page(even_page)
-        pdf_writer.add_page(blank_page)
-        page_number += 1
+            if (i == (number_of_pages_needed - 1)) and not document_is_even:
+                even_page = PageObject.create_blank_page(
+                    None, width, height)
+            else:
+                even_page = pdf_file.pages[page_number+i+1]
+            even_page.add_transformation(even_page_transformation)
+            blank_page.merge_page(even_page)
+            pdf_writer.add_page(blank_page)
+            page_number += 1
 
-    with open(filename_without_extension+"_Notes_Version.pdf", "wb") as output_pdf_file:
-        pdf_writer.write(output_pdf_file)
+        with open(filename_without_extension+"_Notes_Version.pdf", "wb") as output_pdf_file:
+            pdf_writer.write(output_pdf_file)
+    except Exception as e:
+        logging.error("Failed to create a new PDF: %s", e)
+        sys.exit(1)
 
 
 def main():
-
-    try:
-        filename = sys.argv[1]
-    except:
+    if len(sys.argv) < 2:
         print("You may have forgotten to add the filename! Run the program like this: note-ify-pdf.py <pdf_file>")
         sys.exit(1)
 
-    try:
+    filename = sys.argv[1]
 
+    try:
         filename_without_extension = get_filename_without_extension(filename)
         pdf_file = get_pdf(filename)
-
         number_of_pages = get_number_of_pages(pdf_file)
-
         number_of_pages_needed = get_number_of_pages_needed_in_final_document(
             number_of_pages)
-
         document_is_even = get_even_or_odd(number_of_pages)
-
         sample = get_sample(pdf_file)
-
         (width, height) = get_sample_width_height(sample)
-
         (odd_page_transformation,
-         even_page_transformation
-         ) = get_odd_even_transformations(height)
-
+         even_page_transformation) = get_odd_even_transformations(height)
         create_new_pdf(
             number_of_pages,
             number_of_pages_needed,
@@ -132,13 +153,12 @@ def main():
             even_page_transformation,
             filename_without_extension
         )
-
         print(filename, "has been note-ified successfully! - Your new PDF file is called:",
               filename_without_extension+"_Notes_Version.pdf")
+    except Exception as e:
+        logging.error("An error occurred: %s", e)
+        sys.exit(1)
 
-    except:
-        print("Something went wrong with the application!")
-        exit(1)
 
-
-main()
+if __name__ == "__main__":
+    main()
